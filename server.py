@@ -7,6 +7,8 @@ def create_socket():
         global host
         global port
         global s
+        global max_length
+        max_length = 256
         host = '127.0.0.1'
         port = 9999
         s = socket.socket()
@@ -34,12 +36,28 @@ def bind_socket():
         
 # Establish connection with a client (socket must be listening)
 def socket_accept():
-    conn, address = s.accept()
-    print("Connection has been established! | IP " + address[0] + " | Port" + str(address[1]))
-    data = conn.recv(1024)
-    print("Received from client: " + data.decode())
-    conn.send('Hello Client!'.encode())
-    conn.close()
+    while True:
+        conn, address = s.accept()
+        print("Connection has been established! | IP " + address[0] + " | Port" + str(address[1]))
+        try:
+            data = conn.recv(max_length)
+            message = data.decode("ascii")
+            if len(message) > max_length:
+                # Error if message is too long
+                print("Message is too long. Maximum length is " + str(max_length) + " characters.")
+            else:
+                encoded_message = ""
+                for character in message:
+                    # Encoding each character by shifting its ASCII value by 1
+                    encoded_message += chr(ord(character) + 1) 
+                response = "Encoded message: " + encoded_message
+                conn.send(response.encode("ascii"))
+                print("Received from client: " + message)
+        except UnicodeDecodeError:
+            # Error if message is not valid ASCII
+            conn.send("Error: Received data is not valid ASCII.".encode())
+        finally:
+            conn.close()
             
 def main():
     create_socket()
